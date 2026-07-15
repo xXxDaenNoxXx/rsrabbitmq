@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -14,11 +15,15 @@ import org.springframework.security.web.SecurityFilterChain;
  * emitido por Azure AD B2C para el resto de endpoints. Los endpoints bajo
  * /api/guias/** (GuiaDespachoController) quedan con permitAll(): son llamados
  * internamente por ms-administracion-archivos via RestTemplate SIN adjuntar
- * token (GuiaQueueClientService no reenvia Authorization), y al exigir
- * authenticated() ahi, msrabbitmq rechazaba esas llamadas con 401,
- * impidiendo que cualquier guia llegara a cola1/cola2. Como msrabbitmq no se
- * expone directamente al exterior (solo a ms-administracion-archivos dentro
- * de la red interna de Docker), esto es aceptable para el alcance del caso.
+ * token (GuiaQueueClientService no reenvia Authorization).
+ *
+ * MODIFICADO: se deshabilita CSRF. Este microservicio no sirve un frontend con
+ * sesion de navegador, solo expone una API REST consumida server-to-server
+ * (RestTemplate). El CsrfFilter corre ANTES que la evaluacion de
+ * authorizeHttpRequests, asi que aunque /api/guias/** este en permitAll(),
+ * sin esto igual rechazaba todo POST/PUT/DELETE con 401 (Spring redirige los
+ * fallos de CSRF de un usuario anonimo al AuthenticationEntryPoint en vez del
+ * AccessDeniedHandler), impidiendo que cualquier guia llegara a cola1/cola2.
  */
 @Configuration
 @EnableWebSecurity
@@ -28,6 +33,7 @@ public class SecurityConfig {
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
 		http.cors(Customizer.withDefaults())
+				.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/api/guias/**").permitAll()
 						.anyRequest().authenticated())
