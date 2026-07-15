@@ -57,7 +57,7 @@ jobs:
             --password-stdin
  
           # IMPORTANTE: ajusta esta ruta a donde vive tu docker-compose.yml en el EC2
-          cd ~/app
+          cd ~
  
           docker compose pull msrabbitmq
           docker compose up -d msrabbitmq
