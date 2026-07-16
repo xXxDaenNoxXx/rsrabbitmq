@@ -7,11 +7,21 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import cl.duoc.cdy2204.msrabbitmq.dto.GuiaDespachoDTO;
+
+/**
+ * MODIFICADO
+ *
+ * msrabbitmq pasa a ser EXCLUSIVAMENTE el consumidor AMQP (requisito de la
+ * rubrica: un micro productor, otro consumidor). Ya no publica mensajes de
+ * (ver GuiaDespachoListener).
+ */
 @Configuration
 public class RabbitMQConfig {
 
@@ -38,7 +48,19 @@ public class RabbitMQConfig {
 	@Bean
 	Jackson2JsonMessageConverter messageConverter() {
 
-		return new Jackson2JsonMessageConverter();
+		// MODIFICADO: antes usaba el nombre completo de la clase Java (por
+		// defecto) para saber que tipo deserializar via el header __TypeId__.
+		// Como el productor (ms-administracion-archivos) vive en un paquete
+		// Java distinto y no comparte esa clase, se usa un alias comun
+		// ("guiaDespacho") que ambos proyectos mapean a su propio DTO local.
+		Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
+
+		DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
+		typeMapper.setTrustedPackages("*");
+		typeMapper.setIdClassMapping(Map.of("guiaDespacho", GuiaDespachoDTO.class));
+		converter.setJavaTypeMapper(typeMapper);
+
+		return converter;
 	}
 
 	@Bean
