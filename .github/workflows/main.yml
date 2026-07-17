@@ -40,16 +40,7 @@ jobs:
  
       - name: Deploy to EC2
         run: |
-          # MODIFICADO: antes se hacia "docker run" manual, creando el contenedor
-          # fuera de la red de docker-compose y sin las variables RABBITMQ_HOST/
-          # PORT/USER/PASS ni S3_BUCKET_GUIAS_PROCESADAS (solo llevaba las de AWS).
-          # Eso dejaba a msrabbitmq sin poder resolver el hostname "rabbitmq" y
-          # cayendo al default "localhost", ademas de correr la imagen vieja
-          # cacheada cuando el pull fallaba silenciosamente.
-          #
-          # Ahora se usa "docker compose pull/up": el contenedor se crea con
-          # exactamente la config (red, env vars) definida una sola vez en
-          # docker-compose.yml, sin duplicarla aqui.
+         
           ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
  
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
